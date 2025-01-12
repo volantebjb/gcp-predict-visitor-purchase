@@ -1,5 +1,5 @@
 resource "google_bigquery_dataset" "bqml_lab" {
-  dataset_id                  = "bqml_lab"
+  dataset_id = "bqml_lab"
 }
 
 resource "google_bigquery_table" "training_data_view" {
@@ -21,4 +21,21 @@ resource "google_bigquery_table" "training_data_view" {
     EOT
     use_legacy_sql = false
   }
+  depends_on          = [google_bigquery_dataset.bqml_lab]
+  deletion_protection = false
+}
+
+resource "google_bigquery_job" "create_model" {
+  job_id = "create-sample-model-${uuid()}"
+  query {
+    query              = <<EOT
+    CREATE OR REPLACE MODEL `bqml_lab.sample_model`
+    OPTIONS(model_type='logistic_reg') AS
+    SELECT * FROM `bqml_lab.training_data`;
+    EOT
+    use_legacy_sql     = false
+    create_disposition = ""
+    write_disposition  = ""
+  }
+  depends_on = [google_bigquery_table.training_data_view]
 }
